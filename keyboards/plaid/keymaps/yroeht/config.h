@@ -17,3 +17,8 @@
 #pragma once
 
 // place overrides here
+
+#define TAPPING_TERM_PER_KEY
+#define TAPPING_TERM 200
+#define PERMISSIVE_HOLD
+#define RETRO_TAPPING
