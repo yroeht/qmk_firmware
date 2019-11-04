@@ -18,6 +18,14 @@
 
 extern keymap_config_t keymap_config;
 
+enum custom_keycodes {
+  LT_CUSTOM_LOWER = 0x7100,
+  LT_CUSTOM_RAISE,
+};
+
+bool lower_interrupted = false;
+bool raise_interrupted = false;
+
 enum plaid_layers {
   _QWERTY,
   _LOWER,
@@ -39,8 +47,8 @@ enum plaid_keycodes {
   LED_0
 };
 
-#define LOWER LT(_LOWER, KC_SPACE)
-#define RAISE LT(_RAISE, KC_SPACE)
+#define LOWER LT_CUSTOM_LOWER
+#define RAISE LT_CUSTOM_RAISE
 
 // array of keys considered modifiers for led purposes
 const uint16_t modifiers[] = {
@@ -310,6 +318,46 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
       led_config.green_mode=LEDMODE_ENTER;
       eeconfig_update_user(led_config.raw);
       return false;
+      break;
+    /* LT_CUSTOM: as suggested by jackhumbert at
+     * https://github.com/qmk/qmk_firmware/issues/303
+     *
+     * The LT() macro, which should be used to have a key behave differently
+     * whether it is tapped on held with other keys, does not work for me.
+     * I want the layer keys (RAISE and LOWER) to have secondary on tap
+     * functions, but due to LT() implementation this means the following
+     * sequence <PRESS RAISE><PRESS J><RELEASE RAISE><RELEASE J> does not use
+     * the RAISE layer for J, i.e. it outputs "j" rather than my secondary
+     * function (eg, KC_SPC). */
+    case LT_CUSTOM_LOWER:
+      if (record->event.pressed) {
+          lower_interrupted = false;
+          layer_on(_LOWER);
+      } else {
+          if (!lower_interrupted) {
+              register_code(KC_SPC);
+              unregister_code(KC_SPC);
+          }
+          layer_off(_LOWER);
+      }
+      return false;
+      break;
+    case LT_CUSTOM_RAISE:
+      if (record->event.pressed) {
+          raise_interrupted = false;
+          layer_on(_RAISE);
+      } else {
+          if (!raise_interrupted) {
+              register_code(KC_SPC);
+              unregister_code(KC_SPC);
+          }
+          layer_off(_RAISE);
+      }
+      return false;
+      break;
+    default:
+      lower_interrupted = true;
+      raise_interrupted = true;
       break;
   }
   return true;
